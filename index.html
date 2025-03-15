@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webhook Spam</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #74ebd5, #9face6);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .container {
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 20px 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      max-width: 800px;
+      width: 80%;
+      display: flex;
+      gap: 20px;
+    }
+
+    .input-section, .preview-section {
+      flex: 1;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    textarea, input {
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 14px;
+      outline: none;
+    }
+
+    textarea {
+      resize: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #output {
+      margin-top: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .discord-preview {
+      background-color: #2f3136;
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      position: relative;
+      overflow: hidden;
+      min-height: 60px;
+    }
+
+    .webhook-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .username {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .discord-button {
+      margin-left: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #5865F2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .discord-button img {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+    }
+
+    .timestamp {
+      font-size: 0.8em;
+      color: gray;
+    }
+
+    .message-content {
+      margin-left: 50px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    blockquote {
+      border-left: 4px solid #888;
+      padding-left: 10px;
+      color: #bbb;
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="input-section">
+      <h1>Webhook Spammer</h1>
+      <input id="webhookInput" type="text" placeholder="Webhook Url" oninput="autoFillWebhook()">
+      <textarea id="messageInput" placeholder="Escribe tu mensaje aquí..."></textarea>
+      <button onclick="sendMessage()">Enviar Mensaje</button>
+      <div id="output"></div>
+    </div>
+    <div class="preview-section">
+      <h1>Vista Previa</h1>
+      <div class="discord-preview">
+        <div class="message-header">
+          <img id="avatarPreview" class="webhook-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar">
+          <span class="username" id="namePreview">Webhook Profile</span>
+          <span class="timestamp">• ahora</span>
+        </div>
+        <div class="message-content" id="messagePreview"></div>
+      </div>
+    </div>
+  </div>
+ 
+  <a href="https://discord.gg/7RPmUZyxtk" class="discord-button" target="_blank">
+    <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Discord Logo"> Server Link
+  </a>
+
+  <script>
+    document.getElementById('messageInput').addEventListener('input', updatePreview);
+    
+    function updatePreview() {
+      const message = document.getElementById('messageInput').value;
+      const previewElement = document.getElementById('messagePreview');
+      previewElement.innerHTML = formatDiscordMarkdown(message);
+    }
+
+    function formatDiscordMarkdown(text) {
+      text = text.replace(/(?:^|\n)(> .*(?:\n> .*)*)/g, match => {
+        return `<blockquote>${match.replace(/^> /gm, '')}</blockquote>`;
+      });
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\*(.*?)\*/g, '<i>$1</i>')
+        .replace(/~~(.*?)~~/g, '<s>$1</s>')
+        .replace(/__(.*?)__/g, '<span style="text-decoration: underline;">$1</span>')
+        .replace(/`([^`]*)`/g, '<code>$1</code>');
+    }
+
+    async function autoFillWebhook() {
+      const webhookURL = document.getElementById('webhookInput').value;
+      if (!webhookURL) return;
+      try {
+        const response = await fetch(webhookURL);
+        const data = await response.json();
+        document.getElementById('namePreview').textContent = data.name || 'Nombre del Webhook';
+        document.getElementById('avatarPreview').src = data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
+      } catch (error) {
+        console.error('Error obteniendo datos del webhook', error);
+      }
+    }
+
+    async function sendMessage() {
+      const webhookURL = document.getElementById('webhookInput').value;
+      const message = document.getElementById('messageInput').value;
+      if (!webhookURL || !message) {
+        alert('Por favor ingresa un webhook y un mensaje.');
+        return;
+      }
+      for (let i = 0; i < 5; i++) {
+        setTimeout(async () => {
+          try {
+            await fetch(webhookURL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: message })
+            });
+          } catch (error) {
+            console.error('Error al enviar el mensaje', error);
+          }
+        }, i * 200);
+      }
+    }
+  </script>
+</body>
+</html>
